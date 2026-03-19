@@ -1,7 +1,7 @@
 {
-  "name": "FPL Hub",
-  "short_name": "FPL Hub",
-  "description": "Fantasy Premier League deadline, top players & live scores",
+  "name": "Work tracker",
+  "short_name": "Work Tracker",
+  "description": "Track work hours",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
