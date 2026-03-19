@@ -1,4 +1,4 @@
-const CACHE = 'fplhub-v1';
+const CACHE = 'worktrack-v1';
 const OFFLINE = ['/'];
 
 self.addEventListener('install', e => {
