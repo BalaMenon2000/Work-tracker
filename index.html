@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Work Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{min-height:100vh;background:#0f0f13;color:#e8e4dc;font-family:'DM Mono','Courier New',monospace;padding:2rem 1.5rem;}
+  ::-webkit-scrollbar{width:6px;}
+  ::-webkit-scrollbar-track{background:#1a1a22;}
+  ::-webkit-scrollbar-thumb{background:#3a3a52;border-radius:3px;}
+  h1{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;letter-spacing:-0.02em;color:#fff;}
+  .subtitle{color:#6b6b8a;font-size:0.82rem;margin-top:0.25rem;letter-spacing:0.06em;text-transform:uppercase;}
+  .wrap{max-width:860px;margin:0 auto;}
+  .top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;}
+  .month-nav{display:flex;align-items:center;gap:1rem;}
+  .month-label{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:700;min-width:200px;text-align:center;}
+  .nav-btn{background:#1e1e2a;border:1px solid #3a3a52;border-radius:8px;color:#e8e4dc;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;transition:all 0.15s;user-select:none;}
+  .nav-btn:hover{background:#2a2a38;border-color:#5a5a7a;}
+  .total-box{background:#1a1a24;border:1px solid #2e2e42;border-radius:12px;padding:0.7rem 1.4rem;display:flex;align-items:center;gap:0.75rem;}
+  .total-label{color:#6b6b8a;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;}
+  .total-value{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:#c8f03a;}
+  .cal-wrap{background:#13131a;border:1px solid #22222e;border-radius:16px;padding:1.2rem;}
+  .day-headers{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px;}
+  .day-hdr{text-align:center;font-size:0.7rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;padding:0.3rem 0;color:#4a4a6a;}
+  .day-hdr.wknd{color:#5a4a6a;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cell{aspect-ratio:1;border-radius:10px;border:1px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px 4px;cursor:pointer;transition:all 0.15s;background:#1a1a26;}
+  .cell:hover{transform:scale(1.06);border-color:#4a4a6a !important;}
+  .cell.empty{cursor:default;background:transparent;}
+  .cell.empty:hover{transform:none;border-color:transparent !important;}
+  .cell.weekend{background:#161620;}
+  .cell.today{background:#1e2215;border-color:#c8f03a44 !important;}
+  .cell.has-entry{border-color:#3a3a6a;}
+  .cell.has-entry.weekend{background:#1c1828;}
+  .cell.has-entry:not(.weekend){background:#1e2030;}
+  .cell-day{font-size:0.8rem;font-weight:400;color:#9090a8;line-height:1;}
+  .cell-day.today-num{font-weight:700;color:#c8f03a;}
+  .cell-day.wknd-num{color:#4a3a5a;}
+  .cell-hours{font-size:0.62rem;color:#c8f03a;background:#c8f03a18;border-radius:4px;padding:1px 4px;line-height:1.4;text-align:center;}
+  .cell-today-label{font-size:0.55rem;color:#c8f03a66;letter-spacing:0.04em;}
+  .legend{display:flex;gap:1.5rem;margin-top:1rem;padding-left:0.2rem;}
+  .legend-item{display:flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:#4a4a6a;letter-spacing:0.06em;}
+  .legend-dot{width:10px;height:10px;border-radius:3px;}
+
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:100;animation:fadeIn 0.15s ease;}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  .modal{background:#16161f;border:1px solid #2e2e42;border-radius:16px;padding:2rem;width:100%;max-width:380px;animation:slideUp 0.2s ease;box-shadow:0 24px 60px rgba(0,0,0,0.5);margin:1rem;}
+  .modal-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;}
+  .modal-sub{font-size:0.7rem;color:#6b6b8a;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.25rem;}
+  .modal-title{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;color:#fff;}
+  .close-btn{background:none;border:none;color:#6b6b8a;cursor:pointer;font-size:1.3rem;line-height:1;padding:4px;}
+  .close-btn:hover{color:#e8e4dc;}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.8rem;margin-bottom:1rem;}
+  .info-cell{text-align:center;}
+  .info-lbl{font-size:0.65rem;color:#6b6b8a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.2rem;}
+  .info-val{font-size:1rem;font-weight:500;color:#e8e4dc;}
+  .divider{border-top:1px solid #2e2e42;padding-top:0.8rem;text-align:center;margin-bottom:1.2rem;}
+  .hours-display{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:#c8f03a;}
+  .info-box{background:#1a1a26;border-radius:12px;padding:1rem;margin-bottom:1.2rem;}
+  .field{margin-bottom:1rem;}
+  .field:last-child{margin-bottom:0;}
+  label{display:block;font-size:0.7rem;color:#6b6b8a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.4rem;}
+  input[type=time],input[type=number]{background:#1e1e2a;border:1px solid #3a3a52;border-radius:8px;color:#e8e4dc;font-family:'DM Mono',monospace;font-size:1.1rem;padding:0.6rem 0.9rem;width:100%;transition:border-color 0.15s;-webkit-appearance:none;}
+  input[type=time]:focus,input[type=number]:focus{outline:none;border-color:#c8f03a;}
+  input[type=number]::-webkit-inner-spin-button{opacity:1;}
+  .preview-box{background:#c8f03a18;border:1px solid #c8f03a33;border-radius:10px;padding:0.8rem;text-align:center;margin-bottom:1.2rem;}
+  .preview-lbl{font-size:0.65rem;color:#c8f03a99;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.2rem;}
+  .preview-val{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;color:#c8f03a;}
+  .btn-row{display:flex;gap:0.6rem;}
+  .btn{padding:0.5rem 1.2rem;border-radius:8px;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:0.82rem;font-weight:500;transition:all 0.15s;letter-spacing:0.04em;flex:1;}
+  .btn:hover{transform:translateY(-1px);}
+  .btn-primary{background:#c8f03a;color:#0f0f13;}
+  .btn-primary:hover{background:#d4f84a;}
+  .btn-primary:disabled{background:#3a4a1a;color:#6a7a3a;cursor:not-allowed;transform:none;}
+  .btn-secondary{background:#2a2a38;color:#e8e4dc;border:1px solid #3a3a52;flex:0 0 auto;padding:0.5rem 1rem;}
+  .btn-secondary:hover{background:#333348;}
+  .btn-danger{background:#ff4757;color:#fff;}
+  .btn-danger:hover{background:#ff6b6b;}
+  .btn-edit{background:#5c7cfa;color:#fff;}
+  .btn-edit:hover{background:#748ffc;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="margin-bottom:2.5rem">
+    <h1>Work Tracker</h1>
+    <p class="subtitle">Log your hours · Track your time</p>
+  </div>
+  <div class="top-bar">
+    <div class="month-nav">
+      <div class="nav-btn" id="prev">‹</div>
+      <div class="month-label" id="month-label"></div>
+      <div class="nav-btn" id="next">›</div>
+    </div>
+    <div class="total-box">
+      <span class="total-label">Month Total</span>
+      <span class="total-value" id="month-total">0h 00m</span>
+    </div>
+  </div>
+  <div class="cal-wrap">
+    <div class="day-headers" id="day-headers"></div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#c8f03a"></div>Hours logged</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#c8f03a44"></div>Today</div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-sub" id="modal-sub"></div>
+        <div class="modal-title" id="modal-title"></div>
+      </div>
+      <button class="close-btn" id="close-btn">×</button>
+    </div>
+    <!-- View -->
+    <div id="view-mode">
+      <div class="info-box">
+        <div class="info-grid">
+          <div class="info-cell"><div class="info-lbl">Start</div><div class="info-val" id="v-start"></div></div>
+          <div class="info-cell"><div class="info-lbl">End</div><div class="info-val" id="v-end"></div></div>
+          <div class="info-cell"><div class="info-lbl">Break</div><div class="info-val" id="v-break"></div></div>
+        </div>
+        <div class="divider">
+          <div class="info-lbl">Hours Worked</div>
+          <div class="hours-display" id="v-hours"></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-edit" id="edit-btn">Edit</button>
+        <button class="btn btn-danger" id="delete-btn">Delete</button>
+      </div>
+    </div>
+    <!-- Add/Edit -->
+    <div id="edit-mode" style="display:none">
+      <div class="field"><label>Work Start</label><input type="time" id="f-start"/></div>
+      <div class="field"><label>Work End</label><input type="time" id="f-end"/></div>
+      <div class="field" style="margin-bottom:1.2rem"><label>Break Duration (minutes)</label><input type="number" id="f-break" min="0" max="480" placeholder="30"/></div>
+      <div class="preview-box" id="preview-box" style="display:none">
+        <div class="preview-lbl">Hours worked</div>
+        <div class="preview-val" id="preview-val"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="save-btn">Save</button>
+        <button class="btn btn-secondary" id="cancel-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const STORAGE_KEY = "work-tracker-data";
+
+let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+const today = new Date();
+let curYear = today.getFullYear();
+let curMonth = today.getMonth();
+let activeDay = null;
+let deleteStep = false;
+
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function dayKey(day) {
+  return `${curYear}-${String(curMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+}
+
+function parseTime(str) {
+  const [h,m] = str.split(":").map(Number); return h*60+m;
+}
+
+function calcHours(start, end, brk) {
+  if (!start || !end) return 0;
+  return Math.max(0, (parseTime(end) - parseTime(start) - (brk||0)) / 60);
+}
+
+function formatHours(h) {
+  const hrs = Math.floor(h);
+  const mins = Math.round((h-hrs)*60);
+  return `${hrs}h ${String(mins).padStart(2,"0")}m`;
+}
+
+function monthTotal() {
+  let total = 0;
+  const dim = new Date(curYear, curMonth+1, 0).getDate();
+  for (let d=1; d<=dim; d++) {
+    const e = data[dayKey(d)];
+    if (e) total += calcHours(e.start, e.end, e.breakMins);
+  }
+  return total;
+}
+
+function buildDayHeaders() {
+  const el = document.getElementById("day-headers");
+  el.innerHTML = DAYS.map((d,i) => `<div class="day-hdr${i>=5?' wknd':''}">${d}</div>`).join("");
+}
+
+function buildCalendar() {
+  const dim = new Date(curYear, curMonth+1, 0).getDate();
+  let first = new Date(curYear, curMonth, 1).getDay();
+  first = first === 0 ? 6 : first - 1;
+
+  document.getElementById("month-label").textContent = `${MONTHS[curMonth]} ${curYear}`;
+  document.getElementById("month-total").textContent = formatHours(monthTotal());
+
+  const grid = document.getElementById("cal-grid");
+  let html = "";
+  let idx = 0;
+
+  for (let i=0; i<first; i++) { html += `<div class="cell empty"></div>`; idx++; }
+
+  for (let d=1; d<=dim; d++) {
+    const key = dayKey(d);
+    const entry = data[key];
+    const isToday = d===today.getDate() && curMonth===today.getMonth() && curYear===today.getFullYear();
+    const isWeekend = idx%7 >= 5;
+    const hours = entry ? calcHours(entry.start, entry.end, entry.breakMins) : 0;
+
+    let cls = "cell";
+    if (isWeekend) cls += " weekend";
+    if (isToday) cls += " today";
+    if (entry) cls += " has-entry";
+
+    let inner = `<span class="cell-day${isToday?' today-num':''}${isWeekend&&!isToday?' wknd-num':''}">${d}</span>`;
+    if (entry) inner += `<span class="cell-hours">${formatHours(hours)}</span>`;
+    else if (isToday) inner += `<span class="cell-today-label">today</span>`;
+
+    html += `<div class="${cls}" data-day="${d}">${inner}</div>`;
+    idx++;
+  }
+
+  while (idx%7 !== 0) { html += `<div class="cell empty"></div>`; idx++; }
+  grid.innerHTML = html;
+
+  grid.querySelectorAll(".cell:not(.empty)").forEach(cell => {
+    cell.addEventListener("click", () => openDay(parseInt(cell.dataset.day)));
+  });
+}
+
+function openDay(day) {
+  activeDay = day;
+  deleteStep = false;
+  const key = dayKey(day);
+  const entry = data[key];
+  const sub = `${MONTHS[curMonth]} ${curYear}`;
+  document.getElementById("modal-sub").textContent = sub;
+  document.getElementById("modal-title").textContent = `Day ${day}`;
+
+  if (entry) {
+    showViewMode(entry);
+  } else {
+    document.getElementById("f-start").value = "";
+    document.getElementById("f-end").value = "";
+    document.getElementById("f-break").value = "";
+    document.getElementById("preview-box").style.display = "none";
+    document.getElementById("save-btn").textContent = "Save";
+    showEditMode();
+  }
+  document.getElementById("overlay").style.display = "flex";
+}
+
+function showViewMode(entry) {
+  document.getElementById("view-mode").style.display = "block";
+  document.getElementById("edit-mode").style.display = "none";
+  document.getElementById("v-start").textContent = entry.start;
+  document.getElementById("v-end").textContent = entry.end;
+  document.getElementById("v-break").textContent = `${entry.breakMins}m`;
+  document.getElementById("v-hours").textContent = formatHours(calcHours(entry.start, entry.end, entry.breakMins));
+  const delBtn = document.getElementById("delete-btn");
+  delBtn.textContent = "Delete";
+  delBtn.className = "btn btn-danger";
+  deleteStep = false;
+}
+
+function showEditMode() {
+  document.getElementById("view-mode").style.display = "none";
+  document.getElementById("edit-mode").style.display = "block";
+}
+
+function closeModal() {
+  document.getElementById("overlay").style.display = "none";
+  activeDay = null;
+  deleteStep = false;
+}
+
+function updatePreview() {
+  const start = document.getElementById("f-start").value;
+  const end = document.getElementById("f-end").value;
+  const brk = parseInt(document.getElementById("f-break").value) || 0;
+  const box = document.getElementById("preview-box");
+  const saveBtn = document.getElementById("save-btn");
+  if (start && end) {
+    const h = calcHours(start, end, brk);
+    document.getElementById("preview-val").textContent = formatHours(h);
+    box.style.display = "block";
+    saveBtn.disabled = false;
+  } else {
+    box.style.display = "none";
+    saveBtn.disabled = true;
+  }
+}
+
+// Events
+document.getElementById("prev").addEventListener("click", () => {
+  if (curMonth===0) { curMonth=11; curYear--; } else curMonth--;
+  buildCalendar();
+});
+document.getElementById("next").addEventListener("click", () => {
+  if (curMonth===11) { curMonth=0; curYear++; } else curMonth++;
+  buildCalendar();
+});
+document.getElementById("close-btn").addEventListener("click", closeModal);
+document.getElementById("overlay").addEventListener("click", (e) => { if (e.target===e.currentTarget) closeModal(); });
+
+document.getElementById("edit-btn").addEventListener("click", () => {
+  const entry = data[dayKey(activeDay)];
+  document.getElementById("f-start").value = entry.start;
+  document.getElementById("f-end").value = entry.end;
+  document.getElementById("f-break").value = entry.breakMins;
+  document.getElementById("save-btn").textContent = "Update";
+  document.getElementById("save-btn").disabled = false;
+  updatePreview();
+  showEditMode();
+});
+
+document.getElementById("delete-btn").addEventListener("click", () => {
+  const btn = document.getElementById("delete-btn");
+  if (!deleteStep) {
+    btn.textContent = "Confirm Delete";
+    btn.className = "btn btn-secondary";
+    deleteStep = true;
+  } else {
+    delete data[dayKey(activeDay)];
+    saveData();
+    closeModal();
+    buildCalendar();
+  }
+});
+
+document.getElementById("save-btn").addEventListener("click", () => {
+  const start = document.getElementById("f-start").value;
+  const end = document.getElementById("f-end").value;
+  const brk = parseInt(document.getElementById("f-break").value) || 0;
+  if (!start || !end) return;
+  data[dayKey(activeDay)] = { start, end, breakMins: brk };
+  saveData();
+  closeModal();
+  buildCalendar();
+});
+
+document.getElementById("cancel-btn").addEventListener("click", () => {
+  const entry = data[dayKey(activeDay)];
+  if (entry) showViewMode(entry);
+  else closeModal();
+});
+
+["f-start","f-end","f-break"].forEach(id => {
+  document.getElementById(id).addEventListener("input", updatePreview);
+});
+
+// Init
+buildDayHeaders();
+buildCalendar();
+document.getElementById("save-btn").disabled = true;
+</script>
+</body>
+</html>
